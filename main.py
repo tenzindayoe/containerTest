@@ -1,13 +1,57 @@
 from flask import Flask, jsonify
 from flask_socketio import SocketIO, emit
 import time
-
+from repoAnalysis import *
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")  # Initialize WebSocket support with CORS handling
 
 @app.route('/')
 def home():
     return jsonify({"message": "Hello from Flask on Docker!"})
+
+
+
+
+
+@socketio.on('setup')
+def handleSetup(data):
+    (repo_url, clone_location, email, username, token) = data.values()
+    print(f"Received setup request for {repo_url}")
+    print("Clone location: ", clone_location)
+    print("Email: ", email)
+    print("Username: ", username)
+    print("Token: ", token)
+    #setup(repo_url, clone_location, email, username, token)
+    time.sleep(2)
+    emit('processComplete', {'action': 'setup'})
+
+@socketio.on('checkFullSecurity')
+def handleFullSecurityCheck(data):
+    print("Received full security check request")
+    time.sleep(2)
+    emit('processComplete', {'action': 'checkFullSecurity'})
+
+@socketio.on('checkCommitSecurity')
+def handleCommitSecurityCheck(data):
+    print("Received commit security check request")
+    time.sleep(2)
+    emit('processComplete', {'action': 'checkCommitSecurity'})
+@socketio.on('checkFullCompliance')
+def handleFullComplianceCheck(data):
+    print("Received full compliance check request")
+    time.sleep(2)
+
+    emit('processComplete', {'action': 'checkFullCompliance'})
+
+@socketio.on('checkCommitCompliance')
+def handleCommitComplianceCheck(data):
+    print("Received commit compliance check request")
+    time.sleep(2)  # Simulate a long-running process
+    emit('processComplete', {'action': 'checkCommitCompliance'})
+
+
+
+
 
 # WebSocket route to handle process start
 @socketio.on('startProcess')
