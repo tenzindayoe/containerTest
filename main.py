@@ -3,7 +3,7 @@ from flask_socketio import SocketIO, emit
 import time
 
 app = Flask(__name__)
-socketio = SocketIO(app)  # Initialize WebSocket support
+socketio = SocketIO(app, cors_allowed_origins="*")  # Initialize WebSocket support with CORS handling
 
 @app.route('/')
 def home():
@@ -27,8 +27,8 @@ def handle_process_start(data):
     time.sleep(2)  # Simulate process 3
     emit('processUpdate', {'message': 'Process 3 finished'})
 
-    # Notify the client that all processes are complete
+    # Notify the main server that the entire process is complete
     emit('processComplete', {'message': 'All processes finished'})
 
 if __name__ == '__main__':
-    socketio.run(app, host="0.0.0.0", port=80)
+    socketio.run(app, host="0.0.0.0", port=80)  # Ensure Flask listens on all interfaces inside Docker
