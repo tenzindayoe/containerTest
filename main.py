@@ -15,12 +15,12 @@ def home():
 
 @socketio.on('setup')
 def handleSetup(data):
-    (repo_url, clone_location, email, username, token) = data.values()
-    print(f"Received setup request for {repo_url}")
-    print("Clone location: ", clone_location)
-    print("Email: ", email)
-    print("Username: ", username)
-    print("Token: ", token)
+    # (repo_url, clone_location, email, username, token) = data.values()
+    # print(f"Received setup request for {repo_url}")
+    # print("Clone location: ", clone_location)
+    # print("Email: ", email)
+    # print("Username: ", username)
+    # print("Token: ", token)
     #setup(repo_url, clone_location, email, username, token)
     time.sleep(2)
     emit('processComplete', {'action': 'setup'})
