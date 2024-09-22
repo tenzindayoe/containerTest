@@ -1,0 +1,8 @@
+flask
+flask_socketio
+jsonify
+transformers
+accelerate
+torch
+langchain
+langchain_huggingface
