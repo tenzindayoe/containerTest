@@ -2,6 +2,8 @@ from flask import Flask, jsonify
 from flask_socketio import SocketIO, emit
 import time
 from repoAnalysis import *
+from Ai import downloadModel
+
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")  # Initialize WebSocket support with CORS handling
 
@@ -22,7 +24,7 @@ def handleSetup(data):
     print("Username: ", username)
     print("Token: ", token)
     setup(repo_url, clone_location, email, username, token)
-    
+    downloadModel("NousResearch/Hermes-2-Pro-Llama-3-8Bས")
     time.sleep(2)
     emit('processComplete', {'action': 'setup'})
 

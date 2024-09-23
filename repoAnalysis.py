@@ -3,7 +3,6 @@ import git
 from datetime import datetime
 from git import Repo as GitRepo
 from git.exc import GitCommandError
-
 class Repo:
     def __init__(self, url, cloneLocation):
         self.url = url
