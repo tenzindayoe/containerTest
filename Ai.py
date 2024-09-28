@@ -22,7 +22,6 @@ model = AutoModelForCausalLM.from_pretrained(
     model_name,
     torch_dtype=torch.float16,  # Use FP16 for better performance
     device_map="auto",  # Automatically selects GPU if available
-    
 )
 
 terminators = [
