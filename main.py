@@ -172,10 +172,12 @@ def handleCommitSecurityCheck(data):
     pull_latest_commit(clone_location, username, token, branch)
     print("cloned the latest commit")
     affected_files = getLatestCommitAffectedFiles(clone_location, branch)
+
+    repo_analysis = fullRepoAnalysis(clone_location)
     print("Affected files:", affected_files)
     print("Received commit security check request")
     #call the function here and generate report 
-    report = analyzeASetOfFilesForContextAndReport(clone_location, affected_files)
+    report = analyzeASetOfFilesForContextAndReport(clone_location, affected_files,repo_analysis )
     print(report)
     time.sleep(2)
     emit('processComplete', {'action': 'checkCommitSecurity', })
