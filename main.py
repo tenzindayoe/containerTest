@@ -95,9 +95,16 @@ def home():
 
 @socketio.on('setup')
 def handleSetup(data):
-    print(data.values())
-    (repo_url, clone_location,containerId, username, token, branch) = data.values()
-    print(repo_url, clone_location, username, token, branch, containerId)
+
+    (repo_url, containerId,clone_location, username, token, branch) = data.values()
+
+    print("Repository URL:", repo_url)
+    print("Clone Location:", clone_location)
+    print("Username:", username)
+    print("Token:", token)
+    print("Branch:", branch)
+    print("Container ID:", containerId)
+    
     create_directory(clone_location)
 
 
