@@ -4,12 +4,42 @@ import time
 import os 
 from Utils import * 
 from git import Repo
+from git import NULL_TREE
+
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")  # Initialize WebSocket support with CORS handling
 
 
 
 
+def getLatestCommitAffectedFiles(clone_location, branch='main'):
+    try:
+        # Open the repository
+        repo = Repo(clone_location)
+        
+        # Ensure we're on the specified branch
+        repo.git.checkout(branch)
+        
+        # Get the latest commit on the branch
+        latest_commit = repo.head.commit
+
+        # Get the parent commit (if any)
+        if latest_commit.parents:
+            parent_commit = latest_commit.parents[0]
+            diffs = latest_commit.diff(parent_commit)
+        else:
+            # This is the initial commit; compare it against an empty tree
+            diffs = latest_commit.diff(NULL_TREE)
+        
+        # Get the list of affected files
+        files = [diff.a_path for diff in diffs]
+
+        return files
+    except Exception as e:
+        print(f"Error getting affected files from latest commit: {e}")
+        emit('error', {'message': 'Failed to get affected files from latest commit'})
+        return []
+    
 def clone_private_repo(repo_url, clone_location, username, token, branch='main'):
     # Prepare the authenticated URL
     if repo_url.startswith('https://github.com/'):
@@ -69,6 +99,8 @@ def pull_latest_commit(clone_location, username, token, branch='main'):
     except Exception as e:
         print(f"Error pulling latest commits: {e}")
         emit('error', {'message': 'Failed to pull latest commits'})
+
+
 
 
 def create_directory(path):
@@ -131,19 +163,22 @@ def handleFullSecurityCheck(data):
     print("Received full security check request")
     emit('processComplete', {'action': 'checkFullSecurity', 'report': str(report)})
 
+
+
 @socketio.on('checkCommitSecurity')
 def handleCommitSecurityCheck(data):
-    affected_files = data.get('affectedFiles')  
-    commit_id = data.get('commitId')
-    commit_time = data.get('commitTime')
-
-    print("Affected files: ", affected_files)
-    print("Commit ID: ", commit_id)
-    print("Commit time: ", commit_time)
-    
+    (repo_url, containerId,clone_location, username, token, branch) = data.values()
+    print("cloning the latest commit")
+    pull_latest_commit(clone_location, username, token, branch)
+    print("cloned the latest commit")
+    affected_files = getLatestCommitAffectedFiles(clone_location, branch)
+    print("Affected files:", affected_files)
     print("Received commit security check request")
+    #call the function here and generate report 
+    report = analyzeASetOfFilesForContextAndReport(clone_location, affected_files)
+    print(report)
     time.sleep(2)
-    emit('processComplete', {'action': 'checkCommitSecurity'})
+    emit('processComplete', {'action': 'checkCommitSecurity', })
 @socketio.on('checkFullCompliance')
 def handleFullComplianceCheck(data):
     print("Received full compliance check request")
@@ -181,6 +216,10 @@ def handle_process_start(data):
 
     # Notify the main server that the entire process is complete
     emit('processComplete', {'message': 'All processes finished'})
+
+
+
+
 
 if __name__ == '__main__':
     socketio.run(app, host="0.0.0.0", port=80)  # Ensure Flask listens on all interfaces inside Docker
