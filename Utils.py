@@ -50,7 +50,12 @@ def fullRepoAnalysis(repoName):
                 }
 
                 # Send the request to the API ('localhost:3000/getAnalysis')
-                response = requests.post('http://localhost:8000/analyze_repo_code', json=data)
+                try:
+                    response = requests.post('http://localhost:8000/analyze_repo_code', json=data)
+                except Exception as e:
+                    print(f"Error sending request to the API: {e}")
+                    continue
+
 
                 # Check the response status
                 if response.status_code == 200:
@@ -106,8 +111,9 @@ def analyzeRepositoryForContextAndReport(repoName, repo_analysis):
                     'fMap': repo_analysis
                 }
 
-                response = requests.post('http://localhost:8000/analyze_context', json=data)
 
+                response = requests.post('http://localhost:8000/analyze_context', json=data)
+                
                 analysis_result = None
                 # Check the response status
                 if response.status_code == 200:
