@@ -51,7 +51,7 @@ def fullRepoAnalysis(repoName):
 
                 # Send the request to the API ('localhost:3000/getAnalysis')
                 try:
-                    response = requests.post('http://localhost:8000/analyze_repo_code', json=data)
+                    response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_repo_code', json=data)
                 except Exception as e:
                     print(f"Error sending request to the API: {e}")
                     continue
@@ -112,8 +112,8 @@ def analyzeRepositoryForContextAndReport(repoName, repo_analysis):
                 }
 
 
-                response = requests.post('http://localhost:8000/analyze_context', json=data)
-                
+                response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_context', json=data)
+
                 analysis_result = None
                 # Check the response status
                 if response.status_code == 200:
@@ -146,7 +146,7 @@ def analyzeRepositoryForContextAndReport(repoName, repo_analysis):
                     'file_name': filename,
                     'file_content': codes
                 }
-                response = requests.post('http://localhost:8000/analyze_vulnerabilities', json=data)
+                response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_vulnerabilities', json=data)
                 c_report = None
                 # Check the response status
                 if response.status_code == 200:
@@ -216,7 +216,7 @@ def analyzeASetOfFilesForContextAndReport(repoName, filepathsArr, repo_analysis)
                 'fMap': repo_analysis
             }
 
-            context_response = requests.post('http://localhost:8000/analyze_context', json=context_data)
+            context_response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_context', json=context_data)
 
             if context_response.status_code == 200:
                 context_analysis = context_response.json()
@@ -254,7 +254,7 @@ def analyzeASetOfFilesForContextAndReport(repoName, filepathsArr, repo_analysis)
                 'file_content': combined_code
             }
 
-            vulnerability_response = requests.post('http://localhost:8000/analyze_vulnerabilities', json=vulnerability_data)
+            vulnerability_response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_vulnerabilities', json=vulnerability_data)
 
             if vulnerability_response.status_code == 200:
                 vulnerability_report = vulnerability_response.json()
