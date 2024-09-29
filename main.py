@@ -70,6 +70,24 @@ def pull_latest_commit(clone_location, username, token, branch='main'):
         print(f"Error pulling latest commits: {e}")
         emit('error', {'message': 'Failed to pull latest commits'})
 
+
+def create_directory(path):
+    """
+    Creates a directory at the given path. 
+    If the directory (or any parent directories) do not exist, they will be created.
+    
+    :param path: The path where the directory should be created.
+    :return: None
+    """
+    try:
+        # os.makedirs creates all intermediate-level directories if they do not exist.
+        os.makedirs(path, exist_ok=True)
+        print(f"Directory '{path}' created successfully.")
+    except Exception as e:
+        print(f"Error creating directory '{path}': {e}")
+        raise
+
+
 @app.route('/')
 def home():
     return jsonify({"message": "Hello from Flask on Docker!"})
@@ -80,6 +98,9 @@ def handleSetup(data):
     (repo_url, clone_location,containerId, username, token, branch) = data.values()
 
     print(repo_url, clone_location, username, token, branch, containerId)
+    create_directory(clone_location)
+
+
     # Clone the repository
     clone_private_repo(repo_url, clone_location, username, token, branch)
     emit('processUpdate', {'message': 'Repository cloned'})
