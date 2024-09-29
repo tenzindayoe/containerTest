@@ -1,5 +1,16 @@
 import os 
 import requests
+import logging
+
+# Configure logging to output to stdout with the INFO level
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s %(name)s %(message)s',
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 
 def read_file(file_path):
@@ -17,10 +28,11 @@ def read_file(file_path):
 def fullRepoAnalysis(repoName):
     accepted_extensions = {'.js', '.py', '.cpp', '.c', '.java', '.rb', '.go', '.ts', '.php', '.cs', '.swift', '.rs', '.kt'}
 
-    repo_path = os.path.join(os.getcwd(), repoName)  # Use current directory as base
+    repo_path = repoName  # Use current directory as base
 
     if not os.path.isdir(repo_path):
         print(f"Repository {repoName} not found!")
+        logger.error(f"Repository {repoName} not found!")
         return
     repo_analysis = {}
     # Walk through all files in the repo
@@ -78,9 +90,10 @@ def analyzeRepositoryForContextAndReport(repoName, repo_analysis):
     report = []
     # Define the list of accepted programming language extensions
     accepted_extensions = {'.js', '.py', '.cpp', '.c', '.java', '.rb', '.go', '.ts', '.php', '.cs', '.swift', '.rs', '.kt'}
-    repo_path = os.path.join(os.getcwd(), repoName)  # Use current directory as base
+    repo_path = repoName  # Use current directory as base
     if not os.path.isdir(repo_path):
         print(f"Repository {repoName} not found!")
+        logger.error(f"Repository {repoName} not found!")
         return
 
     count = 0
@@ -182,10 +195,11 @@ def analyzeASetOfFilesForContextAndReport(repoName, filepathsArr, repo_analysis)
     """
     report = []
     accepted_extensions = {'.js', '.py', '.cpp', '.c', '.java', '.rb', '.go', '.ts', '.php', '.cs', '.swift', '.rs', '.kt'}
-    repo_path = os.path.join(os.getcwd(), repoName)  # Use current directory as base
+    repo_path = repoName  # Use current directory as base
 
     if not os.path.isdir(repo_path):
         print(f"Repository {repoName} not found!")
+        logger.error(f"Repository {repoName} not found!")
         return report
 
     for file_relative_path in filepathsArr:
