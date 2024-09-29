@@ -3,63 +3,7 @@
 
 import os
 import json
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, BitsAndBytesConfig
-from langchain_huggingface import HuggingFacePipeline
-from langchain.prompts import PromptTemplate
-from langchain_core.runnables import RunnableSequence
-from langchain_core.output_parsers import JsonOutputParser
 
-import torch
-torch.cuda.empty_cache()
-bnb_config = BitsAndBytesConfig(
-    load_in_8bit=True  # Enable 8-bit quantization
-)
-
-# Initialize the Local LLaMA Model (Huggingface LLaMA 8B)
-model_name = "NousResearch/Hermes-2-Pro-Llama-3-8B"  # Replace with the actual LLaMA 8B model if available
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(
-    model_name,
-    torch_dtype=torch.float16,  # Use FP16 for better performance
-    device_map="auto",  # Automatically selects GPU if available
-)
-
-terminators = [
-    tokenizer.eos_token_id,
-    tokenizer.convert_tokens_to_ids("<|eot_id|>")
-]
-print("_____")
-print(terminators)
-# Create the text generation pipeline using Hugging Face
-pipe = pipeline(
-    "text-generation", 
-    model=model, 
-    tokenizer=tokenizer, 
-    max_new_tokens=5000,  # Adjust token limit for new text generation
-    do_sample=True,
-    temperature=0.1,  
-    top_p=0.85,  # Updated top_p value
-    top_k=50,    # Added top_k for more flexibili
-    eos_token_id=terminators,  # I already set the eos_token_id here, still no end for its self-coververstaion
-    pad_token_id=tokenizer.eos_token_id,
-)
-
-
-
-def downloadModel(model_name):
-
-    try:
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            torch_dtype=torch.float16,  # Use FP16 for better performance
-            device_map="auto",  # Automatically selects GPU if available
-        )
-        print("Model downloaded successfully.")
-        return model, tokenizer
-    except Exception as e:
-        print(f"Error downloading model: {e}")
-        return None, None
 
 def read_file(file_path):
     """
@@ -71,37 +15,7 @@ def read_file(file_path):
     except Exception as e:
         print(f"Error reading file {file_path}: {e}")
         return None
-# Initialize the LLM with HuggingFacePipeline
-llm = HuggingFacePipeline(pipeline=pipe)
-def extract_from_llama_response(output_text):
-    """
-    This function extracts the content between <|start_header_id|>assistant<|end_header_id|>
-    and <|eot_id|> from the model's response.
-    """
-    try:
-        # Look for the start of the assistant's response
-        start_token = "<|start_header_id|>assistant<|end_header_id|>"
-        end_token = "<|eot_id|>"
 
-        # Extract the content between these tokens
-        if start_token in output_text and end_token in output_text:
-            start_index = output_text.index(start_token) + len(start_token)
-            end_index = output_text.index(end_token, start_index)
-            assistant_response = output_text[start_index:end_index].strip()
-
-            # Optionally, check if the response is JSON and parse it
-            try:
-                json_data = json.loads(assistant_response)
-                return json_data
-            except json.JSONDecodeError:
-                # If it's not valid JSON, return the raw text response
-                return assistant_response
-        else:
-            print("No valid assistant response found.")
-            return None
-    except Exception as e:
-        print(f"Error extracting response: {e}")
-        return None
 
 # Function to Analyze Repo Code using the Local Model
 def analyze_repo_code(fileContent, fileName, filePath):
@@ -178,6 +92,8 @@ def analyze_repo_code(fileContent, fileName, filePath):
     
     return response
 # Function to Analyze the Whole Repository
+
+
 def analyzeRepository(repoName):
     # Define the list of accepted programming language extensions
     accepted_extensions = {'.js', '.py', '.cpp', '.c', '.java', '.rb', '.go', '.ts', '.php', '.cs', '.swift', '.rs', '.kt'}
