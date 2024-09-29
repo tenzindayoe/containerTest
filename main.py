@@ -9,6 +9,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")  # Initialize WebSocket suppo
 
 
 
+
 def clone_private_repo(repo_url, clone_location, username, token, branch='main'):
     # Prepare the authenticated URL
     if repo_url.startswith('https://github.com/'):
@@ -30,6 +31,7 @@ def clone_private_repo(repo_url, clone_location, username, token, branch='main')
     except Exception as e:
         print(f"Error cloning repository: {e}")
         emit('error', {'message': 'Failed to clone repository'})
+
 
 def pull_latest_commit(clone_location, username, token, branch='main'):
     if not os.path.exists(clone_location):
@@ -75,8 +77,9 @@ def home():
 
 @socketio.on('setup')
 def handleSetup(data):
-    (repo_url, clone_location, username, token, branch) = data.values()
-    print(repo_url, clone_location, username, token, branch)
+    (repo_url, clone_location,containerId, username, token, branch) = data.values()
+
+    print(repo_url, clone_location, username, token, branch, containerId)
     # Clone the repository
     clone_private_repo(repo_url, clone_location, username, token, branch)
     emit('processUpdate', {'message': 'Repository cloned'})
