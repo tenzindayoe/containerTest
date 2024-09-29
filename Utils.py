@@ -65,9 +65,9 @@ def fullRepoAnalysis(repoPath):
                 logger.info(f"Analyzing {file_path}...")
                 logger.debug(f"File content: {file_content}")    
                 data = {
-                    'file_name': filename,
-                    'file_path': file_path,
-                    'file_content': file_content
+                    'fileName': filename,
+                    'filePath': file_path,
+                    'fileContent': file_content
                 }
 
                 # Send the request to the API
@@ -136,8 +136,8 @@ def analyzeRepositoryForContextAndReport(repoPath, repo_analysis):
 
                 # Send a request to the API for context analysis
                 data = {
-                    'file_name': filename,
-                    'file_content': file_content,
+                    'fileName': filename,
+                    'fileContent': file_content,
                     'fMap': repo_analysis
                 }
 
@@ -187,8 +187,8 @@ def analyzeRepositoryForContextAndReport(repoPath, repo_analysis):
                 
                 # Analyze vulnerabilities
                 vulnerability_data = {
-                    'file_name': filename,
-                    'file_content': codes
+                    'fileName': filename,
+                    'fileContent': codes
                 }
 
                 try:
@@ -264,8 +264,8 @@ def analyzeASetOfFilesForContextAndReport(repoPath, filepathsArr, repo_analysis)
 
             # Send a request to the context analysis API
             context_data = {
-                'file_name': os.path.basename(file_path),
-                'file_content': file_content,
+                'fileName': os.path.basename(file_path),
+                'fileContent': file_content,
                 'fMap': repo_analysis
             }
 
@@ -310,8 +310,8 @@ def analyzeASetOfFilesForContextAndReport(repoPath, filepathsArr, repo_analysis)
 
             # Send the combined code to the vulnerability analysis API
             vulnerability_data = {
-                'file_name': os.path.basename(file_path),
-                'file_content': combined_code
+                'fileName': os.path.basename(file_path),
+                'fileContent': combined_code
             }
 
             try:
@@ -339,3 +339,5 @@ def analyzeASetOfFilesForContextAndReport(repoPath, filepathsArr, repo_analysis)
             logger.error(f"Error processing file {file_path}: {e}")
 
     return report
+
+
