@@ -2,10 +2,4 @@ flask
 flask_socketio
 jsonify
 GitPython
-transformers
-langchain
-langchain_huggingface
-accelerate
-torch
-GitPython
 requests
