@@ -115,15 +115,21 @@ def handleSetup(data):
 
 @socketio.on('checkFullSecurity')
 def handleFullSecurityCheck(data):
-    repoName = data.get('repoName')
-    repo_analysis = fullRepoAnalysis(repoName)
+    (repo_url, containerId,clone_location, username, token, branch) = data.values()
+
+    print("Repository URL:", repo_url)
+    print("Clone Location:", clone_location)
+    print("Username:", username)
+    print("Token:", token)
+    print("Branch:", branch)
+    print("Container ID:", containerId)
+
+    repo_analysis = fullRepoAnalysis(clone_location)
     emit('processUpdate', {'message': 'Repo analysis complete'})
-    report = analyzeRepositoryForContextAndReport(repoName, repo_analysis)
+    report = analyzeRepositoryForContextAndReport(clone_location, repo_analysis)
     print(report)
-    emit('processUpdate', {'message': 'Context analysis complete'})
     print("Received full security check request")
-    time.sleep(2)
-    emit('processComplete', {'action': 'checkFullSecurity'})
+    emit('processComplete', {'action': 'checkFullSecurity', 'report': str(report)})
 
 @socketio.on('checkCommitSecurity')
 def handleCommitSecurityCheck(data):
