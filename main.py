@@ -180,10 +180,12 @@ def handleCommitSecurityCheck(data):
     emit('processComplete', {'action': 'checkCommitSecurity','report': str(report)})    
 @socketio.on('checkFullCompliance')
 def handleFullComplianceCheck(data):
+    (repo_url, containerId,clone_location, username, token, branch, userCompText) = data.values()
     print("Received full compliance check request")
     time.sleep(2)
-
-    emit('processComplete', {'action': 'checkFullCompliance'})
+    repo_analysis = fullRepoAnalysis(clone_location)
+    report = analyzeRepositoryForContextAndComplianceReport(clone_location,repo_analysis, userCompText)  
+    emit('processComplete', {'action': 'checkFullCompliance', 'report': str(report)})
 
 @socketio.on('checkCommitCompliance')
 def handleCommitComplianceCheck(data):
