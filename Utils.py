@@ -470,3 +470,125 @@ def analyzeRepositoryForContextAndComplianceReport(repoPath, repo_analysis, user
     return report
 
 
+
+def analyzeASetOfFilesForContextAndComplianceReport(repoPath, filepathsArr, repo_analysis,userCompText):
+    """
+    Analyzes a specific set of files within a repository for context and generates vulnerability reports.
+
+    Parameters:
+    - repoPath (str): The path to the repository.
+    - filepathsArr (list): List of file paths to analyze within the repository.
+    - repo_analysis (dict): Analysis data from fullRepoAnalysis.
+
+    Returns:
+    - report (list): A list of dictionaries containing file names and their vulnerability reports.
+    """
+    report = []
+    accepted_extensions = {'.js', '.py', '.cpp', '.c', '.java', '.rb', '.go', '.ts', '.php', '.cs', '.swift', '.rs', '.kt'}
+    repo_path = repoPath  # repoPath is the absolute path to the repository
+
+    if not os.path.isdir(repo_path):
+        logger.error(f"Repository {repoPath} not found!")
+        return report
+
+    for file_relative_path in filepathsArr:
+        # Construct the absolute file path
+        file_path = os.path.join(repo_path, file_relative_path)
+
+        # Check if the file exists
+        if not os.path.isfile(file_path):
+            logger.warning(f"File {file_path} does not exist. Skipping.")
+            continue
+
+        # Check if the file has an accepted extension
+        _, file_extension = os.path.splitext(file_path)
+        if file_extension.lower() not in accepted_extensions:
+            logger.info(f"Skipping {file_path} (not a programming file)")
+            continue
+
+        try:
+            # Read the file content
+            with open(file_path, 'r', encoding='utf-8') as file:
+                file_content = file.read()
+
+            logger.info(f"Analyzing {file_path} for context...")
+
+            # Send a request to the context analysis API
+            context_data = {
+                'fileName': os.path.basename(file_path),
+                'fileContent': file_content,
+                'fMap': repo_analysis
+            }
+
+            try:
+                context_response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_context', json=context_data)
+                context_response.raise_for_status()
+            except requests.RequestException as e:
+                logger.error(f"Error sending context request to the API for {file_path}: {e}")
+                continue
+
+            # Parse the context analysis response
+            context_analysis = context_response.json() if context_response.status_code == 200 else None
+
+            if context_analysis is None:
+                logger.warning(f"Failed to analyze context for {file_path}, Status Code: {context_response.status_code}")
+                continue
+
+            # Prepare the combined code for vulnerability analysis
+            combined_code = "_____________________________________\n"
+            combined_code += "Code File under analysis : \n"
+            combined_code += f"{os.path.basename(file_path)}\n{file_content}"
+            combined_code += "_____________________________________\n"
+            combined_code += "Related / Dependant Code files \n"
+
+            for related_file in context_analysis:
+                related_file_name = related_file.get("relatedFileName")
+                related_file_path = related_file.get("relatedFilePath")
+                
+                if not related_file_name or not related_file_path:
+                    logger.warning(f"Invalid related file info for {file_path}: {related_file}")
+                    continue
+
+                # Construct the absolute path to the related file
+                related_full_path = os.path.join(repo_path, related_file_path)
+                related_content = read_file(related_full_path)
+                
+                if related_content:
+                    combined_code += f"{related_file_name}\n{related_content}\n"
+                    combined_code += "_____________________________________\n"
+                else:
+                    logger.warning(f"Could not read related file: {related_full_path}")
+
+            # Send the combined code to the vulnerability analysis API
+            vulnerability_data = {
+                'fileName': os.path.basename(file_path),
+                'fileContent': combined_code,
+                'userDefinedPolicies': userCompText
+            }
+
+            try:
+                vulnerability_response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_compliance', json=vulnerability_data)
+                vulnerability_response.raise_for_status()
+            except requests.RequestException as e:
+                logger.error(f"Error sending vulnerability request to the API for {file_path}: {e}")
+                continue
+
+            # Parse the vulnerability analysis response
+            vulnerability_report = vulnerability_response.json() if vulnerability_response.status_code == 200 else None
+
+            if vulnerability_report is None:
+                logger.warning(f"Failed to analyze vulnerabilities for {file_path}, Status Code: {vulnerability_response.status_code}")
+                continue
+
+            logger.info(f"Vulnerability Report for {file_path}: {vulnerability_report}")
+
+            report.append({
+                "fileName": os.path.basename(file_path),
+                "report": vulnerability_report
+            })
+
+        except Exception as e:
+            logger.error(f"Error processing file {file_path}: {e}")
+
+    return report
+

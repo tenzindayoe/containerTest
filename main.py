@@ -182,16 +182,23 @@ def handleCommitSecurityCheck(data):
 def handleFullComplianceCheck(data):
     (repo_url, containerId,clone_location, username, token, branch, userCompText) = data.values()
     print("Received full compliance check request")
-    time.sleep(2)
     repo_analysis = fullRepoAnalysis(clone_location)
     report = analyzeRepositoryForContextAndComplianceReport(clone_location,repo_analysis, userCompText)  
     emit('processComplete', {'action': 'checkFullCompliance', 'report': str(report)})
 
 @socketio.on('checkCommitCompliance')
 def handleCommitComplianceCheck(data):
-    print("Received commit compliance check request")
-    time.sleep(2)  # Simulate a long-running process
-    emit('processComplete', {'action': 'checkCommitCompliance'})
+    (repo_url, containerId,clone_location, username, token, branch, userCompText) = data.values()
+    print("cloning the latest commit")
+    pull_latest_commit(clone_location, username, token, branch)
+    print("cloned the latest commit")
+    affected_files = getLatestCommitAffectedFiles(clone_location, branch)
+
+    repo_analysis = fullRepoAnalysis(clone_location)
+    #call the function here and generate report 
+    report = analyzeASetOfFilesForContextAndComplianceReport(clone_location, affected_files,repo_analysis, userCompText )
+
+    emit('processComplete', {'action': 'checkCommitCompliance', 'report': str(report)})
 
 
 
