@@ -222,7 +222,16 @@ def analyzeRepositoryForContextAndReport(repoPath, repo_analysis):
                         continue
 
                     # Construct the absolute path to the related file
-                    related_full_path = os.path.join(repo_path, related_file_path)
+                    related_full_path = None
+                    if os.path.isabs(related_file_path):
+                        # If it's absolute, use it as the full path directly
+                        related_full_path = related_file_path
+                        logger.info(f"Using absolute path for related file: {related_full_path}")
+                    else:
+                        # If it's relative, combine it with repo_path
+                        related_full_path = os.path.join(repo_path, related_file_path)
+                        logger.info(f"Using combined path for related file: {related_full_path}")
+
 
                     # Read the related file content
                     related_content = read_file(related_full_path)
@@ -368,7 +377,17 @@ def analyzeASetOfFilesForContextAndReport(repoPath, filepathsArr, repo_analysis)
                     continue
 
                 # Construct the absolute path to the related file
-                related_full_path = os.path.join(repo_path, related_file_path)
+                related_full_path = None
+                if os.path.isabs(related_file_path):
+                    # If it's absolute, use it as the full path directly
+                    related_full_path = related_file_path
+                    logger.info(f"Using absolute path for related file: {related_full_path}")
+                else:
+                    # If it's relative, combine it with repo_path
+                    related_full_path = os.path.join(repo_path, related_file_path)
+                    logger.info(f"Using combined path for related file: {related_full_path}")
+
+                
                 related_content = read_file(related_full_path)
                 
                 if related_content:
