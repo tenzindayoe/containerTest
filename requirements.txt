@@ -3,3 +3,4 @@ flask_socketio
 jsonify
 GitPython
 requests
+redis
