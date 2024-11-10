@@ -1,6 +1,35 @@
 import os 
 import requests
 import logging
+import redis
+import hashlib
+
+
+redis_host = os.getenv('REDIS_HOST', 'redis_server')
+redis_port = os.getenv('REDIS_PORT', 6379)
+redis_client = redis.Redis(host=redis_host, port=redis_port)
+
+def test_redis_connection():
+    try:
+        # Attempt to set and get a test key
+        redis_client.set("test_key", "test_value")
+        value = redis_client.get("test_key")
+        if value == b"test_value":
+            print("Redis connection successful!")
+        else:
+            print("Redis connection failed: Unexpected value")
+    except redis.ConnectionError as e:
+        print(f"Redis connection failed: {e}")
+
+test_redis_connection()
+
+
+
+def string_to_sha256(input_string):
+    input_bytes = input_string.encode('utf-8')
+    sha256_hash = hashlib.sha256()
+    sha256_hash.update(input_bytes)
+    return sha256_hash.hexdigest()
 
 # Configure logging to output to stdout with the INFO level
 logging.basicConfig(
@@ -60,7 +89,6 @@ def fullRepoAnalysis(repoPath):
             try:
                 with open(file_path, 'r', encoding='utf-8') as file:
                     file_content = file.read()
-
                 # Analyze the file
                 logger.info(f"Analyzing {file_path}...")
                 logger.debug(f"File content: {file_content}")    
@@ -70,16 +98,26 @@ def fullRepoAnalysis(repoPath):
                     'fileContent': file_content
                 }
 
-                # Send the request to the API
-                try:
-                    response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_repo_code', json=data)
-                    response.raise_for_status()
-                except requests.RequestException as e:
-                    logger.error(f"Error sending request to the API for {file_path}: {e}")
-                    continue
-
-                # Parse the response
-                analysis_result = response.json() if response.status_code == 200 else None
+                searchQuery = "repoAnalysis:" + file_content
+                cached_analysis = redis_client.get(searchQuery)
+                analysis_result = None
+                if cached_analysis:
+                    # If found in Redis, use the cached result
+                    analysis_result = cached_analysis
+                    print(f"Cache hit for {file_path}")
+                else:
+                    # Send the request to the API
+                    try:
+                        response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_repo_code', json=data)
+                        response.raise_for_status()
+                    except requests.RequestException as e:
+                        logger.error(f"Error sending request to the API for {file_path}: {e}")
+                        continue
+    
+                    # Parse the response
+                    analysis_result = response.json() if response.status_code == 200 else None
+                    if analysis_result != None:
+                        redis_client.set(searchQuery, analysis_result)
 
                 if analysis_result is None:
                     logger.warning(f"Failed to analyze {file_path}, Status Code: {response.status_code}")
@@ -140,16 +178,26 @@ def analyzeRepositoryForContextAndReport(repoPath, repo_analysis):
                     'fileContent': file_content,
                     'fMap': repo_analysis
                 }
+                context_search_query = "context:" + string_to_sha256(file_content)
+                vulnerability_search_query = "vulnerability:" + string_to_sha256(file_content)
 
-                try:
-                    response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_context', json=data)
-                    response.raise_for_status()
-                except requests.RequestException as e:
-                    logger.error(f"Error sending context request to the API for {file_path}: {e}")
-                    continue
-
-                # Parse the context analysis response
-                analysis_result = response.json() if response.status_code == 200 else None
+                cached_context_analysis = redis_client.get(context_search_query)
+                analysis_result = None
+                
+                if cached_context_analysis:
+                    analysis_result = cached_context_analysis
+                else:
+                    try:
+                        response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_context', json=data)
+                        response.raise_for_status()
+                    except requests.RequestException as e:
+                        logger.error(f"Error sending context request to the API for {file_path}: {e}")
+                        continue
+    
+                    # Parse the context analysis response
+                    analysis_result = response.json() if response.status_code == 200 else None
+                    if analysis_result != None:
+                        redis_client.set(context_search_query, analysis_result)
 
                 if analysis_result is None:
                     logger.warning(f"Failed to analyze context for {file_path}, Status Code: {response.status_code}")
@@ -191,19 +239,27 @@ def analyzeRepositoryForContextAndReport(repoPath, repo_analysis):
                     'fileContent': codes
                 }
 
-                try:
-                    vulnerability_response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_vulnerabilities', json=vulnerability_data)
-                    vulnerability_response.raise_for_status()
-                except requests.RequestException as e:
-                    logger.error(f"Error sending vulnerability request to the API for {file_path}: {e}")
-                    continue
-
-                # Parse the vulnerability analysis response
-                c_report = vulnerability_response.json() if vulnerability_response.status_code == 200 else None
-
-                if c_report is None:
-                    logger.warning(f"Failed to analyze vulnerabilities for {file_path}, Status Code: {vulnerability_response.status_code}")
-                    continue
+                cached_vulnerability_report = redis_client.get(vulnerability_search_query)
+                c_report = None
+                if cached_vulnerability_report:
+                    c_report = cached_vulnerability_report
+                    print(f"Vulnerability cache hit for {file_path}")
+                else:
+                    try:
+                        vulnerability_response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_vulnerabilities', json=vulnerability_data)
+                        vulnerability_response.raise_for_status()
+                    except requests.RequestException as e:
+                        logger.error(f"Error sending vulnerability request to the API for {file_path}: {e}")
+                        continue
+    
+                    # Parse the vulnerability analysis response
+                    c_report = vulnerability_response.json() if vulnerability_response.status_code == 200 else None
+                    if c_report !=None : 
+                        redis_client.set(vulnerability_search_query, c_report)
+                        
+                    if c_report is None:
+                        logger.warning(f"Failed to analyze vulnerabilities for {file_path}, Status Code: {vulnerability_response.status_code}")
+                        continue
 
                 logger.info(f"Vulnerability Report for {file_path}: {c_report}")
                 report.append({"fileName": filename, "report": c_report})
