@@ -329,9 +329,11 @@ def analyzeASetOfFilesForContextAndReport(repoPath, filepathsArr, repo_analysis)
 
             cached_context_analysis = redis_client.get(context_search_query)
             analysis_result = None
+            context_analysis = None
             
             if cached_context_analysis:
-                analysis_result = json.loads(cached_context_analysis)
+                context_analysis = json.loads(cached_context_analysis)
+                print(f"Context cache hit for {file_path}")
             else:
                 try:
                     context_response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_context', json=context_data)
