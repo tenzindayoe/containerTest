@@ -468,20 +468,29 @@ def analyzeRepositoryForContextAndComplianceReport(repoPath, repo_analysis, user
                     'fileContent': file_content,
                     'fMap': repo_analysis
                 }
+                context_search_query = "context:" + string_to_sha256(file_content)
+                compliance_search_query = "compliance:" + string_to_sha256(file_content)
 
-                try:
-                    response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_context', json=data)
-                    response.raise_for_status()
-                except requests.RequestException as e:
-                    logger.error(f"Error sending context request to the API for {file_path}: {e}")
-                    continue
+                cached_context_analysis = redis_client.get(context_search_query)
+                analysis_result = None
 
-                # Parse the context analysis response
-                analysis_result = response.json() if response.status_code == 200 else None
-
-                if analysis_result is None:
-                    logger.warning(f"Failed to analyze context for {file_path}, Status Code: {response.status_code}")
-                    continue
+                if cached_context_analysis:
+                    analysis_result = json.loads(cached_context_analysis)
+                else:
+                    try:
+                        response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_context', json=data)
+                        response.raise_for_status()
+                    except requests.RequestException as e:
+                        logger.error(f"Error sending context request to the API for {file_path}: {e}")
+                        continue
+    
+                    # Parse the context analysis response
+                    analysis_result = response.json() if response.status_code == 200 else None
+                    if analysis_result != None:
+                        redis_client.set(context_search_query, json.dumps(analysis_result))
+                    if analysis_result is None:
+                        logger.warning(f"Failed to analyze context for {file_path}, Status Code: {response.status_code}")
+                        continue
 
                 # Store the analysis result in the dictionary
                 relatedFiles[filename] = analysis_result
@@ -520,20 +529,26 @@ def analyzeRepositoryForContextAndComplianceReport(repoPath, repo_analysis, user
                     'fileContent': codes,
                     'userDefinedPolicies': userCompText
                 }
+                cached_compliance_analysis = redis_client.get(compliance_search_query)
 
-                try:
-                    vulnerability_response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_compliance', json=vulnerability_data)
-                    vulnerability_response.raise_for_status()
-                except requests.RequestException as e:
-                    logger.error(f"Error sending vulnerability request to the API for {file_path}: {e}")
-                    continue
-
-                # Parse the vulnerability analysis response
-                c_report = vulnerability_response.json() if vulnerability_response.status_code == 200 else None
-
-                if c_report is None:
-                    logger.warning(f"Failed to analyze vulnerabilities for {file_path}, Status Code: {vulnerability_response.status_code}")
-                    continue
+                c_report = None
+                if cached_compliance_analysis:
+                    c_report = json.loads(cached_compliance_analysis)
+                else:
+                    try:
+                        vulnerability_response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_compliance', json=vulnerability_data)
+                        vulnerability_response.raise_for_status()
+                    except requests.RequestException as e:
+                        logger.error(f"Error sending vulnerability request to the API for {file_path}: {e}")
+                        continue
+    
+                    # Parse the vulnerability analysis response
+                    c_report = vulnerability_response.json() if vulnerability_response.status_code == 200 else None
+                    if c_report != None : 
+                        redis_client.set(compliance_search_query, json.dumps(c_report))
+                    if c_report is None:
+                        logger.warning(f"Failed to analyze vulnerabilities for {file_path}, Status Code: {vulnerability_response.status_code}")
+                        continue
 
                 logger.info(f"Vulnerability Report for {file_path}: {c_report}")
                 report.append({"fileName": filename, "report": c_report})
@@ -600,19 +615,30 @@ def analyzeASetOfFilesForContextAndComplianceReport(repoPath, filepathsArr, repo
                 'fMap': repo_analysis
             }
 
-            try:
-                context_response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_context', json=context_data)
-                context_response.raise_for_status()
-            except requests.RequestException as e:
-                logger.error(f"Error sending context request to the API for {file_path}: {e}")
-                continue
+            context_search_query = "context:" + string_to_sha256(file_content)
+            compliance_search_query = "compliance:" + string_to_sha256(file_content)
 
-            # Parse the context analysis response
-            context_analysis = context_response.json() if context_response.status_code == 200 else None
+            cached_context_analysis = redis_client.get(context_search_query)
+            analysis_result = None
 
-            if context_analysis is None:
-                logger.warning(f"Failed to analyze context for {file_path}, Status Code: {context_response.status_code}")
-                continue
+            if cached_context_analysis:
+                analysis_result = json.loads(cached_context_analysis)
+            else:
+                try:
+                    context_response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_context', json=context_data)
+                    context_response.raise_for_status()
+                except requests.RequestException as e:
+                    logger.error(f"Error sending context request to the API for {file_path}: {e}")
+                    continue
+    
+                # Parse the context analysis response
+                context_analysis = context_response.json() if context_response.status_code == 200 else None
+                if context_analysis != None: 
+                    redis_client.set(context_search_query, json.dumps(analysis_result))
+                    
+                if context_analysis is None:
+                    logger.warning(f"Failed to analyze context for {file_path}, Status Code: {context_response.status_code}")
+                    continue
 
             # Prepare the combined code for vulnerability analysis
             combined_code = "_____________________________________\n"
@@ -645,20 +671,25 @@ def analyzeASetOfFilesForContextAndComplianceReport(repoPath, filepathsArr, repo
                 'fileContent': combined_code,
                 'userDefinedPolicies': userCompText
             }
+            cached_compliance_analysis = redis_client.get(compliance_search_query)
 
-            try:
-                vulnerability_response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_compliance', json=vulnerability_data)
-                vulnerability_response.raise_for_status()
-            except requests.RequestException as e:
-                logger.error(f"Error sending vulnerability request to the API for {file_path}: {e}")
-                continue
-
-            # Parse the vulnerability analysis response
-            vulnerability_report = vulnerability_response.json() if vulnerability_response.status_code == 200 else None
-
-            if vulnerability_report is None:
-                logger.warning(f"Failed to analyze vulnerabilities for {file_path}, Status Code: {vulnerability_response.status_code}")
-                continue
+            vulnerability_report = None
+            if cached_compliance_analysis:
+                vulnerability_report = json.loads(cached_compliance_analysis)
+            else:
+                try:
+                    vulnerability_response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_compliance', json=vulnerability_data)
+                    vulnerability_response.raise_for_status()
+                except requests.RequestException as e:
+                    logger.error(f"Error sending vulnerability request to the API for {file_path}: {e}")
+                    continue
+    
+                # Parse the vulnerability analysis response
+                vulnerability_report = vulnerability_response.json() if vulnerability_response.status_code == 200 else None
+    
+                if vulnerability_report is None:
+                    logger.warning(f"Failed to analyze vulnerabilities for {file_path}, Status Code: {vulnerability_response.status_code}")
+                    continue
 
             logger.info(f"Vulnerability Report for {file_path}: {vulnerability_report}")
 
