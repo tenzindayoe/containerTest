@@ -344,7 +344,7 @@ def analyzeASetOfFilesForContextAndReport(repoPath, filepathsArr, repo_analysis)
                 context_analysis = context_response.json() if context_response.status_code == 200 else None
 
                 if context_analysis != None : 
-                    redis
+                    redis_client.set(context_search_query, json.dumps(context_analysis))
     
                 if context_analysis is None:
                     logger.warning(f"Failed to analyze context for {file_path}, Status Code: {context_response.status_code}")
