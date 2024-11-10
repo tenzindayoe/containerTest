@@ -328,9 +328,8 @@ def analyzeASetOfFilesForContextAndReport(repoPath, filepathsArr, repo_analysis)
             vulnerability_search_query = "vulnerability:" + string_to_sha256(file_content)
 
             cached_context_analysis = redis_client.get(context_search_query)
-            analysis_result = None
-            context_analysis = None
             
+            context_analysis = None
             if cached_context_analysis:
                 context_analysis = json.loads(cached_context_analysis)
                 print(f"Context cache hit for {file_path}")
@@ -476,6 +475,7 @@ def analyzeRepositoryForContextAndComplianceReport(repoPath, repo_analysis, user
 
                 if cached_context_analysis:
                     analysis_result = json.loads(cached_context_analysis)
+                    print(f"Context cache hit for {file_path}")
                 else:
                     try:
                         response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_context', json=data)
@@ -534,6 +534,7 @@ def analyzeRepositoryForContextAndComplianceReport(repoPath, repo_analysis, user
                 c_report = None
                 if cached_compliance_analysis:
                     c_report = json.loads(cached_compliance_analysis)
+                    print(f"Compliance cache hit for {file_path}")
                 else:
                     try:
                         vulnerability_response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_compliance', json=vulnerability_data)
@@ -619,10 +620,11 @@ def analyzeASetOfFilesForContextAndComplianceReport(repoPath, filepathsArr, repo
             compliance_search_query = "compliance:" + string_to_sha256(file_content)
 
             cached_context_analysis = redis_client.get(context_search_query)
-            analysis_result = None
+            context_analysis = None
 
             if cached_context_analysis:
-                analysis_result = json.loads(cached_context_analysis)
+                context_analysis = json.loads(cached_context_analysis)
+                print(f"Context cache hit for {file_path}")
             else:
                 try:
                     context_response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_context', json=context_data)
@@ -634,7 +636,7 @@ def analyzeASetOfFilesForContextAndComplianceReport(repoPath, filepathsArr, repo
                 # Parse the context analysis response
                 context_analysis = context_response.json() if context_response.status_code == 200 else None
                 if context_analysis != None: 
-                    redis_client.set(context_search_query, json.dumps(analysis_result))
+                    redis_client.set(context_search_query, json.dumps(context_analysis))
                     
                 if context_analysis is None:
                     logger.warning(f"Failed to analyze context for {file_path}, Status Code: {context_response.status_code}")
@@ -676,6 +678,7 @@ def analyzeASetOfFilesForContextAndComplianceReport(repoPath, filepathsArr, repo
             vulnerability_report = None
             if cached_compliance_analysis:
                 vulnerability_report = json.loads(cached_compliance_analysis)
+                print(f"Compliance cache hit for {file_path}")
             else:
                 try:
                     vulnerability_response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_compliance', json=vulnerability_data)
@@ -686,7 +689,9 @@ def analyzeASetOfFilesForContextAndComplianceReport(repoPath, filepathsArr, repo
     
                 # Parse the vulnerability analysis response
                 vulnerability_report = vulnerability_response.json() if vulnerability_response.status_code == 200 else None
-    
+                if vulnerability_report != None : 
+                    redis_client.set(compliance_search_query, json.dumps(vulnerability_report))
+                    
                 if vulnerability_report is None:
                     logger.warning(f"Failed to analyze vulnerabilities for {file_path}, Status Code: {vulnerability_response.status_code}")
                     continue
