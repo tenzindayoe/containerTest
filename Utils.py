@@ -502,7 +502,7 @@ def analyzeRepositoryForContextAndComplianceReport(repoPath, repo_analysis, user
                         continue
 
                     # Construct the absolute path to the related file
-                    related_full_path = os.path.join(repo_path, related_file_path)
+                    related_full_path = related_file_path
 
                     # Read the related file content
                     related_content = read_file(related_full_path)
@@ -630,7 +630,7 @@ def analyzeASetOfFilesForContextAndComplianceReport(repoPath, filepathsArr, repo
                     continue
 
                 # Construct the absolute path to the related file
-                related_full_path = os.path.join(repo_path, related_file_path)
+                related_full_path =related_file_path
                 related_content = read_file(related_full_path)
                 
                 if related_content:
