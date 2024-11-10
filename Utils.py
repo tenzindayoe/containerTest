@@ -3,7 +3,7 @@ import requests
 import logging
 import redis
 import hashlib
-
+import json
 
 redis_host = os.getenv('REDIS_HOST', 'redis_server')
 redis_port = os.getenv('REDIS_PORT', 6379)
@@ -103,7 +103,7 @@ def fullRepoAnalysis(repoPath):
                 analysis_result = None
                 if cached_analysis:
                     # If found in Redis, use the cached result
-                    analysis_result = cached_analysis
+                    analysis_result = json.loads(cached_analysis)
                     print(f"Cache hit for {file_path}")
                 else:
                     # Send the request to the API
@@ -117,7 +117,7 @@ def fullRepoAnalysis(repoPath):
                     # Parse the response
                     analysis_result = response.json() if response.status_code == 200 else None
                     if analysis_result != None:
-                        redis_client.set(searchQuery, analysis_result)
+                        redis_client.set(searchQuery, json.dumps(analysis_result))
 
                 if analysis_result is None:
                     logger.warning(f"Failed to analyze {file_path}, Status Code: {response.status_code}")
@@ -185,7 +185,7 @@ def analyzeRepositoryForContextAndReport(repoPath, repo_analysis):
                 analysis_result = None
                 
                 if cached_context_analysis:
-                    analysis_result = cached_context_analysis
+                    analysis_result = json.loads(cached_context_analysis)
                 else:
                     try:
                         response = requests.post('http://llama3_1CodeSecu_service:8000/analyze_context', json=data)
@@ -197,7 +197,7 @@ def analyzeRepositoryForContextAndReport(repoPath, repo_analysis):
                     # Parse the context analysis response
                     analysis_result = response.json() if response.status_code == 200 else None
                     if analysis_result != None:
-                        redis_client.set(context_search_query, analysis_result)
+                        redis_client.set(context_search_query, json.dumps(analysis_result))
 
                 if analysis_result is None:
                     logger.warning(f"Failed to analyze context for {file_path}, Status Code: {response.status_code}")
@@ -242,7 +242,7 @@ def analyzeRepositoryForContextAndReport(repoPath, repo_analysis):
                 cached_vulnerability_report = redis_client.get(vulnerability_search_query)
                 c_report = None
                 if cached_vulnerability_report:
-                    c_report = cached_vulnerability_report
+                    c_report = json.loads(cached_vulnerability_report)
                     print(f"Vulnerability cache hit for {file_path}")
                 else:
                     try:
@@ -255,7 +255,7 @@ def analyzeRepositoryForContextAndReport(repoPath, repo_analysis):
                     # Parse the vulnerability analysis response
                     c_report = vulnerability_response.json() if vulnerability_response.status_code == 200 else None
                     if c_report !=None : 
-                        redis_client.set(vulnerability_search_query, c_report)
+                        redis_client.set(vulnerability_search_query, json.dumps(c_report))
                         
                     if c_report is None:
                         logger.warning(f"Failed to analyze vulnerabilities for {file_path}, Status Code: {vulnerability_response.status_code}")
