@@ -5,6 +5,41 @@ import redis
 import hashlib
 import json
 
+import subprocess
+
+def generateSaastReport(file_path):
+    # Check if the file has a .py extension
+    if not file_path.endswith(".py"):
+        print("Error: The specified file is not a Python file.")
+        return None
+    
+    # Verify if the file exists
+    if not os.path.isfile(file_path):
+        print("Error: The specified file does not exist.")
+        return None
+
+    try:
+        # Run Bandit on the specified file and output in JSON format
+        result = subprocess.run(
+            ["bandit", "-f", "json", file_path],
+            capture_output=True,
+            text=True
+        )
+        
+        # Parse and return the JSON output
+        return json.loads(result.stdout)
+    
+    except FileNotFoundError:
+        print("Error: Bandit is not installed. Install it with `pip install bandit`.")
+        return None
+    except json.JSONDecodeError:
+        print("Error: Could not parse Bandit's output.")
+        return None
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
+
 redis_host = os.getenv('REDIS_HOST', 'redis_server')
 redis_port = os.getenv('REDIS_PORT', 6379)
 redis_client = redis.Redis(host=redis_host, port=redis_port)
@@ -210,6 +245,11 @@ def analyzeRepositoryForContextAndReport(repoPath, repo_analysis):
                 codes = "_____________________________________\n"
                 codes += "Code File under analysis : \n"
                 codes += f"{filename}\n{file_content}"
+                saast_report = generateSaastReport(file_path)
+                if saast_report:
+                    codes += "\n_____________________________________\n"
+                    codes += "Static Application Security Testing (SAST) report : \n"
+                    codes += json.dumps(saast_report, indent=2)
                 codes += "_____________________________________"
                 codes += "\n Related / Dependant Code files \n"
 
@@ -353,6 +393,11 @@ def analyzeASetOfFilesForContextAndReport(repoPath, filepathsArr, repo_analysis)
             combined_code = "_____________________________________\n"
             combined_code += "Code File under analysis : \n"
             combined_code += f"{os.path.basename(file_path)}\n{file_content}"
+            saast_report = generateSaastReport(file_path)
+            if saast_report:
+                combined_code += "\n_____________________________________\n"
+                combined_code += "Static Application Security Testing (SAST) report : \n"
+                combined_code += json.dumps(saast_report, indent = 2)
             combined_code += "_____________________________________\n"
             combined_code += "Related / Dependant Code files \n"
 
