@@ -4,8 +4,8 @@ import logging
 import redis
 import hashlib
 import json
-
 import subprocess
+import re
 
 def generateSaastReport(file_path):
     # Check if the file has a .py extension
@@ -19,25 +19,62 @@ def generateSaastReport(file_path):
         return None
 
     try:
-        # Run Bandit on the specified file and output in JSON format
+        # Run Bandit on the specified file and capture output
         result = subprocess.run(
-            ["bandit", "-f", "json", file_path],
+            ["bandit", file_path],
             capture_output=True,
             text=True
         )
         
-        # Parse and return the JSON output
-        return json.loads(result.stdout)
-    
+        # Extract issues from the stdout output
+        output_lines = result.stdout.splitlines()
+        issues = []
+        current_issue = {}
+
+        for line in output_lines:
+            # Detect each new issue
+            if line.startswith(">> Issue:"):
+                # Save the previous issue if it's populated
+                if current_issue:
+                    issues.append(current_issue)
+                # Start a new issue
+                current_issue = {"issue": line.split(":", 1)[1].strip()}
+            elif "Severity:" in line and "Confidence:" in line:
+                # Extract severity and confidence
+                severity_match = re.search(r"Severity:\s(\w+)", line)
+                confidence_match = re.search(r"Confidence:\s(\w+)", line)
+                if severity_match and confidence_match:
+                    current_issue["severity"] = severity_match.group(1)
+                    current_issue["confidence"] = confidence_match.group(1)
+            elif "CWE:" in line:
+                # Extract CWE information
+                cwe_match = re.search(r"CWE:\s([\w-]+)\s\((https[^\)]+)\)", line)
+                if cwe_match:
+                    current_issue["cwe"] = cwe_match.group(1)
+                    current_issue["cwe_url"] = cwe_match.group(2)
+            elif "More Info:" in line:
+                # Extract more info URL
+                more_info_url = line.split(":", 1)[1].strip()
+                current_issue["more_info"] = more_info_url
+            elif "Location:" in line:
+                # Extract file location and line numbers
+                location_info = line.split(":", 1)[1].strip()
+                current_issue["location"] = location_info
+            elif line.startswith("Code scanned:"):
+                # Save the last issue if it's populated
+                if current_issue:
+                    issues.append(current_issue)
+                break  # Exit parsing as we’ve reached the end of issues
+
+        return issues
+
     except FileNotFoundError:
         print("Error: Bandit is not installed. Install it with `pip install bandit`.")
-        return None
-    except json.JSONDecodeError:
-        print("Error: Could not parse Bandit's output.")
         return None
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
+
 
 
 redis_host = os.getenv('REDIS_HOST', 'redis_server')
