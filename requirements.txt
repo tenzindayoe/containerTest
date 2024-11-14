@@ -4,3 +4,4 @@ jsonify
 GitPython
 requests
 redis
+bandit
