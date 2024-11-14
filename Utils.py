@@ -7,6 +7,7 @@ import json
 import subprocess
 import re
 
+
 def generateSaastReport(file_path):
     # Check if the file has a .py extension
     if not file_path.endswith(".py"):
@@ -34,8 +35,12 @@ def generateSaastReport(file_path):
         for line in output_lines:
             # Detect each new issue
             if line.startswith(">> Issue:"):
-                # Save the previous issue if it's populated
+                # Save the previous issue if populated
                 if current_issue:
+                    # Retrieve code snippet if line number is available
+                    if 'line_number' in current_issue:
+                        line_num = current_issue['line_number']
+                        current_issue['code_snippet'] = get_code_snippet(file_path, line_num)
                     issues.append(current_issue)
                 # Start a new issue
                 current_issue = {"issue": line.split(":", 1)[1].strip()}
@@ -60,9 +65,17 @@ def generateSaastReport(file_path):
                 # Extract file location and line numbers
                 location_info = line.split(":", 1)[1].strip()
                 current_issue["location"] = location_info
+                # Extract line number from location info
+                location_match = re.search(r":(\d+):", location_info)
+                if location_match:
+                    current_issue["line_number"] = int(location_match.group(1))
             elif line.startswith("Code scanned:"):
                 # Save the last issue if it's populated
                 if current_issue:
+                    # Retrieve code snippet if line number is available
+                    if 'line_number' in current_issue:
+                        line_num = current_issue['line_number']
+                        current_issue['code_snippet'] = get_code_snippet(file_path, line_num)
                     issues.append(current_issue)
                 break  # Exit parsing as we’ve reached the end of issues
 
@@ -73,6 +86,21 @@ def generateSaastReport(file_path):
         return None
     except Exception as e:
         print(f"An error occurred: {e}")
+        return None
+
+def get_code_snippet(file_path, line_number, context_lines=2):
+    """
+    Extracts a code snippet around a given line number from the file.
+    Includes a few lines above and below the issue line for context.
+    """
+    try:
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+            start = max(line_number - context_lines - 1, 0)
+            end = min(line_number + context_lines, len(lines))
+            return ''.join(lines[start:end]).strip()
+    except Exception as e:
+        print(f"Error reading file {file_path} for code snippet: {e}")
         return None
 
 
