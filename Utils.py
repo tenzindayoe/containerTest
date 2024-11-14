@@ -152,7 +152,7 @@ def analyzeRepositoryForContextAndReport(repoPath, repo_analysis):
         logger.error(f"Repository {repoPath} not found!")
         return report
 
-    count = 0
+    
     # Walk through all files in the repo
     for dirpath, _, filenames in os.walk(repo_path):
         for filename in filenames:
@@ -263,15 +263,13 @@ def analyzeRepositoryForContextAndReport(repoPath, repo_analysis):
 
                 logger.info(f"Vulnerability Report for {file_path}: {c_report}")
                 report.append({"fileName": filename, "report": c_report})
-                count += 1
+               
                 
             except Exception as e:
                 logger.error(f"Error reading or analyzing file {file_path}: {e}")
             
-            if count >= 5:
-                break
-        if count >= 5:
-            break
+            
+     
     
     return report
 
@@ -441,7 +439,7 @@ def analyzeRepositoryForContextAndComplianceReport(repoPath, repo_analysis, user
         logger.error(f"Repository {repoPath} not found!")
         return report
 
-    count = 0
+   
     # Walk through all files in the repo
     for dirpath, _, filenames in os.walk(repo_path):
         for filename in filenames:
@@ -553,15 +551,12 @@ def analyzeRepositoryForContextAndComplianceReport(repoPath, repo_analysis, user
 
                 logger.info(f"Vulnerability Report for {file_path}: {c_report}")
                 report.append({"fileName": filename, "report": c_report})
-                count += 1
+             
                 
             except Exception as e:
                 logger.error(f"Error reading or analyzing file {file_path}: {e}")
             
-            if count >= 5:
-                break
-        if count >= 5:
-            break
+
     
     return report
 
